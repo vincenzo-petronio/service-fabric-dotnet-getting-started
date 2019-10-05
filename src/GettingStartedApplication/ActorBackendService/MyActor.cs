@@ -44,7 +44,7 @@ namespace ActorBackendService
             }
             catch (ReminderNotFoundException)
             {
-                await this.RegisterReminderAsync(ReminderName, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(10));
+                await this.RegisterReminderAsync(ReminderName, null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(1));
             }
 
             bool added = await this.StateManager.TryAddStateAsync<long>(StateName, 0);

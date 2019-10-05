@@ -47,6 +47,9 @@ namespace WebService.Controllers
                 long partitionKey = ((Int64RangePartitionInformation)partition.PartitionInformation).LowKey;
                 IActorService actorServiceProxy = ActorServiceProxy.Create(new Uri(serviceUri), partitionKey);
 
+                // https://docs.microsoft.com/it-it/azure/service-fabric/service-fabric-reliable-actors-enumerate
+                // Gli Actors sono ranged partitioned stateful service, quindi l'enumeration è fatta per partizione.
+                // Ogni partizione contiene più attori, e il risultato è un loop su un elenco di "pagine".
                 ContinuationToken continuationToken = null;
 
                 do
