@@ -63,7 +63,7 @@
     </Service>
     <Service Name="StatefulBackendService">
       <StatefulService ServiceTypeName="StatefulBackendServiceType" TargetReplicaSetSize="[StatefulBackendService_TargetReplicaSetSize]" MinReplicaSetSize="[StatefulBackendService_MinReplicaSetSize]">
-        <UniformInt64Partition PartitionCount="[StatefulBackendService_PartitionCount]" LowKey="0" HighKey="1000" />
+        <UniformInt64Partition PartitionCount="[StatefulBackendService_PartitionCount]" LowKey="0" HighKey="25" />
       </StatefulService>
     </Service>
     <Service Name="StatelessBackendService">
