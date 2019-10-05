@@ -5,6 +5,8 @@
 
 namespace WebService.Controllers
 {
+    using Microsoft.AspNetCore.Mvc;
+    using Newtonsoft.Json;
     using System;
     using System.Collections.Generic;
     using System.Fabric;
@@ -14,8 +16,6 @@ namespace WebService.Controllers
     using System.Net.Http.Headers;
     using System.Text;
     using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Mvc;
-    using Newtonsoft.Json;
 
     [Route("api/[controller]")]
     public class StatefulBackendServiceController : Controller
@@ -48,8 +48,12 @@ namespace WebService.Controllers
             JsonSerializer serializer = new JsonSerializer();
             foreach (Partition partition in partitions)
             {
-                long partitionKey = ((Int64RangePartitionInformation) partition.PartitionInformation).LowKey;
+                long partitionKey = ((Int64RangePartitionInformation)partition.PartitionInformation).LowKey;
 
+                // REVERSE PROXY 
+                // https://docs.microsoft.com/it-it/azure/service-fabric/service-fabric-reverseproxy
+                // Per raggiungere un URL internamente (non dall'esterno) su una partizione di tipo Ranged,
+                // è sufficiente chiamare l'API in questo modo:
                 string proxyUrl =
                     $"http://localhost:{this.configSettings.ReverseProxyPort}/{serviceUri.Replace("fabric:/", "")}/api/values?PartitionKind={partition.PartitionInformation.Kind}&PartitionKey={partitionKey}";
 
@@ -58,15 +62,20 @@ namespace WebService.Controllers
                 if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 {
                     // if one partition returns a failure, you can either fail the entire request or skip that partition.
-                    return this.StatusCode((int) response.StatusCode);
+                    return this.StatusCode((int)response.StatusCode);
                 }
 
                 List<KeyValuePair<string, string>> list =
                     JsonConvert.DeserializeObject<List<KeyValuePair<string, string>>>(await response.Content.ReadAsStringAsync());
 
-                if (list != null && list.Any())
+                List<KeyValuePair<string, string>> listEnhanced = list.Select(kv =>
+                    new KeyValuePair<string, string>(
+                        kv.Key, kv.Value + " - " + partition.PartitionInformation.Id + " - " + partition.PartitionInformation.Kind
+                    )).ToList();
+
+                if (listEnhanced != null && listEnhanced.Any())
                 {
-                    result.AddRange(list);
+                    result.AddRange(listEnhanced);
                 }
             }
 
@@ -97,9 +106,10 @@ namespace WebService.Controllers
             }
             catch (Exception ex)
             {
-                return new ContentResult {StatusCode = 400, Content = ex.Message};
+                return new ContentResult { StatusCode = 400, Content = ex.Message };
             }
 
+            // REVERSE PROXY 
             string proxyUrl =
                 $"http://localhost:{this.configSettings.ReverseProxyPort}/{serviceUri}/api/values/{keyValuePair.Key}?PartitionKind=Int64Range&PartitionKey={partitionKeyNumber}";
 
@@ -111,7 +121,7 @@ namespace WebService.Controllers
 
             return new ContentResult()
             {
-                StatusCode = (int) response.StatusCode,
+                StatusCode = (int)response.StatusCode,
                 Content = await response.Content.ReadAsStringAsync()
             };
         }
